@@ -1,0 +1,4 @@
+ACTION=="add",SUBSYSTEM=="usb", \
+ATTR{idVendor}=="04b3",ATTR{idProduct}=="4010",ATTR{iManufacturer}="reMarkable" \
+TAG+="systemd", \
+ENV{SYSTEMD_USER_WANTS}+="remarkable-backup.service"

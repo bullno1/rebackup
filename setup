@@ -1,8 +1,23 @@
 #!/bin/sh -e
 
+# SSH key
+
 if [ ! -e  ~/.ssh/remarkable_rsa ]
 then
 	ssh-keygen -t ed25519 -f ~/.ssh/remarkable_rsa -N ""
 fi
-
 ssh-copy-id -o StrictHostKeyChecking=no -i ~/.ssh/remarkable_rsa root@10.11.99.1
+
+# systemd unit
+
+SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
+cp $SCRIPT_DIR/remarkable-backup.service.template ~/.config/systemd/user/remarkable-backup.service
+echo "ExecStart=$SCRIPT_DIR/backup" >> ~/.config/systemd/user/remarkable-backup.service
+
+systemctl --user daemon-reload
+
+# udev rule
+
+sudo cp $SCRIPT_DIR/remarkable-backup.rules /etc/udev/rules.d/99-remarkable-backup.rules
+sudo udevadm control --reload-rules
+sudo udevadm trigger

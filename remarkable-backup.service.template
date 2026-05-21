@@ -1,0 +1,7 @@
+[Unit]
+Description=reMarkable tablet backup
+
+[Service]
+Type=oneshot
+StandardOutput=journal
+StandardError=journal

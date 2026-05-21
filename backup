@@ -1,16 +1,27 @@
-#!/bin/sh -ex
+#!/bin/sh -e
 
 BACKUP_ROOT="$HOME/remarkable-backups"
 REMOTE="root@10.11.99.1"
 REMOTE_DIR="/home/root/"
 SSH_KEY="$HOME/.ssh/remarkable_rsa"
 SSH_OPTS="-o StrictHostKeyChecking=no -o IdentitiesOnly=yes -o ConnectTimeout=5 -i $SSH_KEY"
+KEEP_SNAPSHOTS=10
 
 notify() {
 	local summary="$1" body="${2:-}" icon="${3:-drive-harddisk}"
 	notify-send --app-name="rebackup" \
 		--icon="$icon" \
 		"$summary" "$body"
+}
+
+prune_backups() {
+    local dir="$1" keep="$2"
+    local count
+    count=$(ls -1d "$dir"/[0-9]* 2>/dev/null | wc -l)
+	if [ $count -gt $keep ]
+	then
+		ls -1d "$dir"/[0-9]* | sort | head -n -"$keep" | xargs -r rm -rf
+	fi
 }
 
 notify "reMarkable detected" "Waiting for USB network…" "network-wired"
@@ -53,6 +64,8 @@ fi
 if [ "$?" -eq 0 ]
 then
 	ln -sfn "$DEST" "$LATEST"
+	prune_backups "$BACKUP_ROOT/$DEVICE_ID" "$KEEP_SNAPSHOTS"
+
 	notify "reMarkable backup complete" "Saved to $DEVICE_ID/$TIMESTAMP" "emblem-default"
 else
 	notify "reMarkable backup failed" "rsync exited with an error — check journalctl" "dialog-error"

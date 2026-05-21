@@ -1,0 +1,60 @@
+#!/bin/sh -ex
+
+BACKUP_ROOT="$HOME/remarkable-backups"
+REMOTE="root@10.11.99.1"
+REMOTE_DIR="/home/root/"
+SSH_KEY="$HOME/.ssh/remarkable_rsa"
+SSH_OPTS="-o StrictHostKeyChecking=no -o ConnectTimeout=5 -i $SSH_KEY"
+
+notify() {
+	local summary="$1" body="${2:-}" icon="${3:-drive-harddisk}"
+	notify-send --app-name="rebackup" \
+		--icon="$icon" \
+		"$summary" "$body"
+}
+
+notify "reMarkable detected" "Waiting for USB network…" "network-wired"
+
+# Wait for SSH to become available
+for i in $(seq 1 30); do
+	ssh $SSH_OPTS "$REMOTE" true 2>/dev/null && break
+	if [[ $i -eq 30 ]]; then
+		notify "reMarkable backup failed" "Could not reach device over USB" "dialog-error"
+		exit 1
+	fi
+	sleep 1
+done
+
+DEVICE_ID=$(ssh $SSH_OPTS "$REMOTE" "cat /etc/machine-id")
+TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+DEST="$BACKUP_ROOT/$DEVICE_ID/$TIMESTAMP"
+LATEST="$BACKUP_ROOT/$DEVICE_ID/latest"
+
+mkdir -p "$DEST"
+
+notify "reMarkable backup started" "Syncing to $DEVICE_ID/$TIMESTAMP…" "emblem-synchronizing"
+
+if [ -d $LATEST ]
+then
+	rsync -az \
+		--delete \
+		--link-dest="$LATEST" \
+		-e "ssh $SSH_OPTS" \
+		"$REMOTE:$REMOTE_DIR" \
+		"$DEST/"
+else
+	rsync -az \
+		--delete \
+		-e "ssh $SSH_OPTS" \
+		"$REMOTE:$REMOTE_DIR" \
+		"$DEST/"
+fi
+
+if [ "$?" -eq 0 ]
+then
+	ln -sfn "$DEST" "$LATEST"
+	notify "reMarkable backup complete" "Saved to $DEVICE_ID/$TIMESTAMP" "emblem-default"
+else
+	notify "reMarkable backup failed" "rsync exited with an error — check journalctl" "dialog-error"
+	exit 1
+fi

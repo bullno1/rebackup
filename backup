@@ -4,7 +4,7 @@ BACKUP_ROOT="$HOME/remarkable-backups"
 REMOTE="root@10.11.99.1"
 REMOTE_DIR="/home/root/"
 SSH_KEY="$HOME/.ssh/remarkable_rsa"
-SSH_OPTS="-o StrictHostKeyChecking=no -o ConnectTimeout=5 -i $SSH_KEY"
+SSH_OPTS="-o StrictHostKeyChecking=no -o IdentitiesOnly=yes -o ConnectTimeout=5 -i $SSH_KEY"
 
 notify() {
 	local summary="$1" body="${2:-}" icon="${3:-drive-harddisk}"

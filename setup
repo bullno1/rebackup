@@ -1,0 +1,8 @@
+#!/bin/sh -e
+
+if [ ! -e  ~/.ssh/remarkable_rsa ]
+then
+	ssh-keygen -t ed25519 -f ~/.ssh/remarkable_rsa -N ""
+fi
+
+ssh-copy-id -o StrictHostKeyChecking=no -i ~/.ssh/remarkable_rsa root@10.11.99.1
